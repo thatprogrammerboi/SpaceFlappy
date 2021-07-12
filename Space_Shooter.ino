@@ -204,7 +204,7 @@ void loop() {
             bullet[bulletNum].x = shipX + 5;
             bullet[bulletNum].y = shipY + 3;
             bullet[bulletNum].fired = true;
-            sound.tone(450, 25);
+            sound.tone(450, 10);
             break;
           };
         };
@@ -432,10 +432,14 @@ void loop() {
         arduboy.drawBitmap(bg2X, 0, stars, 128, 64);
       };
 
-      arduboy.setCursor(40, 10);
+      arduboy.setCursor(39, 10);
       arduboy.print("GAME OVER");
-      arduboy.setCursor(18, 50);
-      arduboy.print("L: Retry R: Menu");
+      arduboy.drawBitmap(20, 50, left, 8, 8);
+      arduboy.setCursor(32, 50);
+      arduboy.print("Retry");
+      arduboy.drawBitmap(71, 50, right, 8, 8);
+      arduboy.setCursor(82, 50);
+      arduboy.print("Menu");
       if (arduboy.justPressed(LEFT_BUTTON)) {
         lives = 3;
         invincible = false;
