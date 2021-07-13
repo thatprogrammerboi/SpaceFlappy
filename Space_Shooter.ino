@@ -9,28 +9,26 @@ Arduboy2 arduboy;
 ArduboyTones sound(arduboy.audio.enabled);
 Tinyfont tinyfont = Tinyfont(arduboy.sBuffer, Arduboy2::width(), Arduboy2::height());
 
-#define gravity 1
+const int gravity = 1;
 
-#define MENU_STATE 0
-#define GAME_STATE 1
-#define GAME_OVER_STATE 2
-#define GAME_START_STATE 3
+enum gameState {
+  MENU_STATE,
+  GAME_STATE,
+  GAME_OVER_STATE,
+  GAME_START_STATE
+} gameState;
 
 int shipX = 8;
 int shipY = 32;
 int yv = 0;
 int animTimer = 0;
 int delayTimer = 0;
-int bg1X = 0;
-int bg2X = 127;
+int background1X = 0;
+int background2X = 127;
 int lives = 3;
 bool invincible = false;
 int invincibleTimer = 0;
-int bulletNum;
-int enemyNum;
-int explosionNum;
 int score = 0;
-int gameState = MENU_STATE;
 
 struct Bullets {
   int x = 0;
@@ -66,6 +64,7 @@ void loop() {
   if (!(arduboy.nextFrameDEV())) {
     return;
   };
+
   if (arduboy.everyXFrames(10)) {
     if (animTimer == 0) {
       animTimer++;
@@ -78,27 +77,26 @@ void loop() {
   switch (gameState) {
     case (MENU_STATE):
       arduboy.pollButtons();
-
-      if (bg1X > -127 && arduboy.everyXFrames(3)) {
-        bg1X = bg1X - 1;
-      } else if (bg1X <= -127 && bg2X < 0) {
-        bg1X = 127;
+      if (background1X > -127 && arduboy.everyXFrames(3)) {
+        background1X = background1X - 1;
+      } else if (background1X <= -127 && background2X < 0) {
+        background1X = 127;
       };
-      if (bg2X > -127 && arduboy.everyXFrames(3)) {
-        bg2X = bg2X - 1;
-      } else if (bg2X <= -127 && bg1X < 0) {
-        bg2X = 127;
+      if (background2X > -127 && arduboy.everyXFrames(3)) {
+        background2X = background2X - 1;
+      } else if (background2X <= -127 && background1X < 0) {
+        background2X = 127;
       };
       if (arduboy.everyXFrames(2)) {
-        arduboy.drawBitmap(bg1X, 0, stars, 128, 64);
-        arduboy.drawBitmap(bg2X, 0, stars, 128, 64);
+        arduboy.drawBitmap(background1X, 0, stars, 128, 64);
+        arduboy.drawBitmap(background2X, 0, stars, 128, 64);
       };
 
       arduboy.setCursor(30, 15);
-      arduboy.print("SPACE SHOOTER");
+      arduboy.print(F("SPACE FLAPPY"));
       arduboy.setCursor(45, 45);
       if (arduboy.everyXFrames(2)) {
-        arduboy.print("Press ");
+        arduboy.print(F("Press "));
         arduboy.drawBitmap(77, 45, aButton, 8, 8);
       }
       if (arduboy.justPressed(A_BUTTON)) {
@@ -106,17 +104,17 @@ void loop() {
         lives = 3;
         invincible = false;
         invincibleTimer = 0;
-        for (bulletNum = 0, enemyNum = 0, explosionNum = 0; bulletNum < 10, enemyNum < 10, explosionNum < 10; bulletNum++, enemyNum++, explosionNum++) {
-          bullet[bulletNum].x = 0;
-          bullet[bulletNum].y = 0;
-          bullet[bulletNum].fired = false;
-          enemy[enemyNum].x = 0;
-          enemy[enemyNum].y = 0;
-          enemy[enemyNum].onscreen = false;
-          explosion[explosionNum].x = 0;
-          explosion[explosionNum].y = 0;
-          explosion[explosionNum].frame = 0;
-          explosion[explosionNum].exploding = false;
+        for (int itemNum = 0; itemNum < 10; itemNum++) {
+          bullet[itemNum].x = 0;
+          bullet[itemNum].y = 0;
+          bullet[itemNum].fired = false;
+          enemy[itemNum].x = 0;
+          enemy[itemNum].y = 0;
+          enemy[itemNum].onscreen = false;
+          explosion[itemNum].x = 0;
+          explosion[itemNum].y = 0;
+          explosion[itemNum].frame = 0;
+          explosion[itemNum].exploding = false;
         };
         score = 0;
         yv = 0;
@@ -127,21 +125,22 @@ void loop() {
       break;
 
     case (GAME_START_STATE):
+      arduboy.pollButtons();
       //Background movement and drawing
-      if (bg1X > -127) {
-        bg1X = bg1X - 1;
-      } else if (bg1X <= -127 && bg2X < 0) {
-        bg1X = 127;
+      if (background1X > -127) {
+        background1X = background1X - 1;
+      } else if (background1X <= -127 && background2X < 0) {
+        background1X = 127;
       };
-      if (bg2X > -127) {
-        bg2X = bg2X - 1;
-      } else if (bg2X <= -127 && bg1X < 0) {
-        bg2X = 127;
+      if (background2X > -127) {
+        background2X = background2X - 1;
+      } else if (background2X <= -127 && background1X < 0) {
+        background2X = 127;
       };
 
       if (arduboy.everyXFrames(2)) {
-        arduboy.drawBitmap(bg1X, 0, stars, 128, 64);
-        arduboy.drawBitmap(bg2X, 0, stars, 128, 64);
+        arduboy.drawBitmap(background1X, 0, stars, 128, 64);
+        arduboy.drawBitmap(background2X, 0, stars, 128, 64);
       };
 
       if (animTimer == 0) {
@@ -152,7 +151,7 @@ void loop() {
 
       arduboy.setCursor(50, 30);
       if (arduboy.everyXFrames(2)) {
-        arduboy.print("Ready?");
+        arduboy.print(F("Ready?"));
       }
 
       delayTimer++;
@@ -165,9 +164,8 @@ void loop() {
       break;
 
     case (GAME_STATE):
-      //Player ship control and movement
       arduboy.pollButtons();
-
+      //Player ship control and movement
       if (arduboy.justPressed(UP_BUTTON) && shipY > 1) {
         yv = -2;
       } else {
@@ -199,7 +197,7 @@ void loop() {
 
       //Weapon control and movement
       if (arduboy.justPressed(B_BUTTON)) {
-        for (bulletNum = 0; bulletNum < 10; bulletNum++) {
+        for (int bulletNum = 0; bulletNum < 10; bulletNum++) {
           if (bullet[bulletNum].fired == false) {
             bullet[bulletNum].x = shipX + 5;
             bullet[bulletNum].y = shipY + 3;
@@ -210,18 +208,18 @@ void loop() {
         };
       };
 
-      for (bulletNum = 0; bulletNum < 10; bulletNum++) {
-        if (bullet[bulletNum].x < 127 && bullet[bulletNum].fired == true) {
+      for (int bulletNum = 0; bulletNum < 10; bulletNum++) {
+        if (bullet[bulletNum].x < 127 && bullet[bulletNum].fired) {
           bullet[bulletNum].x = bullet[bulletNum].x + 3;
         } else {
           bullet[bulletNum].fired = false;
         };
       };
 
-      for (bulletNum = 0; bulletNum < 10; bulletNum++) {
-        for (enemyNum = 0; enemyNum < 10; enemyNum++) {
-          if (arduboy.collide(Rect(bullet[bulletNum].x, bullet[bulletNum].y, 3, 1), Rect(enemy[enemyNum].x - 2, enemy[enemyNum].y - 2, 10, 10)) && bullet[bulletNum].fired == true) {
-            for (explosionNum = 0; explosionNum < 10; explosionNum++) {
+      for (int bulletNum = 0; bulletNum < 10; bulletNum++) {
+        for (int enemyNum = 0; enemyNum < 10; enemyNum++) {
+          if (arduboy.collide(Rect(bullet[bulletNum].x, bullet[bulletNum].y, 3, 1), Rect(enemy[enemyNum].x - 2, enemy[enemyNum].y - 2, 10, 10)) && bullet[bulletNum].fired) {
+            for (int explosionNum = 0; explosionNum < 10; explosionNum++) {
               if (explosion[explosionNum].exploding == false) {
                 explosion[explosionNum].exploding = true;
                 explosion[explosionNum].x = enemy[enemyNum].x - 2;
@@ -242,26 +240,26 @@ void loop() {
 
 
       //Background movement and drawing
-      if (bg1X > -127) {
-        bg1X = bg1X - 1;
-      } else if (bg1X <= -127 && bg2X < 0) {
-        bg1X = 127;
+      if (background1X > -127) {
+        background1X = background1X - 1;
+      } else if (background1X <= -127 && background2X < 0) {
+        background1X = 127;
       };
-      if (bg2X > -127) {
-        bg2X = bg2X - 1;
-      } else if (bg2X <= -127 && bg1X < 0) {
-        bg2X = 127;
+      if (background2X > -127) {
+        background2X = background2X - 1;
+      } else if (background2X <= -127 && background1X < 0) {
+        background2X = 127;
       };
       if (arduboy.everyXFrames(2)) {
-        arduboy.drawBitmap(bg1X, 0, stars, 128, 64);
-        arduboy.drawBitmap(bg2X, 0, stars, 128, 64);
+        arduboy.drawBitmap(background1X, 0, stars, 128, 64);
+        arduboy.drawBitmap(background2X, 0, stars, 128, 64);
       };
 
 
       //Enemy ship spawning and movement
       if (arduboy.everyXFrames(20)) {
-        for (enemyNum = 0; enemyNum < 10; enemyNum++) {
-          if (enemy[enemyNum].onscreen == false) {
+        for (int enemyNum = 0; enemyNum < 10; enemyNum++) {
+          if (!enemy[enemyNum].onscreen) {
             enemy[enemyNum].x = 127;
             enemy[enemyNum].y = random(1, 55);
             enemy[enemyNum].onscreen = true;
@@ -270,8 +268,8 @@ void loop() {
         }
       }
 
-      for (enemyNum = 0; enemyNum < 10; enemyNum++) {
-        if (enemy[enemyNum].x > -8 && enemy[enemyNum].onscreen == true) {
+      for (int enemyNum = 0; enemyNum < 10; enemyNum++) {
+        if (enemy[enemyNum].x > -8 && enemy[enemyNum].onscreen) {
           enemy[enemyNum].x = enemy[enemyNum].x - 2;
           if (animTimer == 0) {
             arduboy.drawBitmap(enemy[enemyNum].x, enemy[enemyNum].y, enemy1, 8, 8);
@@ -285,8 +283,8 @@ void loop() {
 
 
       //Player ship drawing and collision checking
-      for (enemyNum = 0; enemyNum < 10; enemyNum++) {
-        if (arduboy.collide(Rect(shipX, shipY, 14, 6), Rect(enemy[enemyNum].x, enemy[enemyNum].y, 8, 8)) && invincible == false) {
+      for (int enemyNum = 0; enemyNum < 10; enemyNum++) {
+        if (arduboy.collide(Rect(shipX, shipY, 14, 6), Rect(enemy[enemyNum].x, enemy[enemyNum].y, 8, 8)) && !invincible) {
           invincibleTimer = 120; //2 seconds @60fps
           invincible = true;
           if (lives > 1) {
@@ -299,13 +297,13 @@ void loop() {
         }
       }
 
-      if (invincibleTimer > 0 && invincible == true) {
+      if (invincibleTimer > 0 && invincible) {
         invincibleTimer = invincibleTimer - 1;
       } else {
         invincible = false;
       }
 
-      if (invincible == true) {
+      if (invincible) {
         if (animTimer == 0 && arduboy.everyXFrames(2)) {
           arduboy.drawBitmap(shipX, shipY, ship1, 14, 6);
         } else if (animTimer == 1 && arduboy.everyXFrames(2)) {
@@ -325,7 +323,7 @@ void loop() {
 
 
       //Draw the bullets
-      for (bulletNum = 0; bulletNum < 10; bulletNum++) {
+      for (int bulletNum = 0; bulletNum < 10; bulletNum++) {
         if (bullet[bulletNum].fired == true) {
           arduboy.drawFastHLine(bullet[bulletNum].x, bullet[bulletNum].y, 3);
         };
@@ -333,7 +331,7 @@ void loop() {
 
 
       //Draw the explosions
-      for (explosionNum = 0; explosionNum < 10; explosionNum++) {
+      for (int explosionNum = 0; explosionNum < 10; explosionNum++) {
         if (explosion[explosionNum].exploding == true) {
           switch (explosion[explosionNum].frame) {
             case 0:
@@ -390,13 +388,13 @@ void loop() {
 
             default:
               arduboy.setCursor(explosion[explosionNum].x, explosion[explosionNum].y);
-              arduboy.print("ERROR");
+              arduboy.print(F("ERROR"));
               break;
           };
         };
       };
       if (arduboy.everyXFrames(2)) {
-        for (explosionNum = 0; explosionNum < 10; explosionNum++) {
+        for (int explosionNum = 0; explosionNum < 10; explosionNum++) {
           if (explosion[explosionNum].frame < 12) {
             explosion[explosionNum].frame++;
           } else {
@@ -405,56 +403,61 @@ void loop() {
         };
       };
       tinyfont.setCursor(85, 58);
-      tinyfont.print("LIFE");
+      tinyfont.print(F("LIFE"));
       tinyfont.setCursor(110, 58);
       switch (lives) {
         case 3:
-          tinyfont.print("iii");
+          tinyfont.print(F("iii"));
           break;
         case 2:
-          tinyfont.print("ii");
+          tinyfont.print(F("ii"));
           break;
         case 1:
-          tinyfont.print("i");
+          tinyfont.print(F("i"));
+          break;
+        default:
+          tinyfont.print(F("Error"));
           break;
       }
       tinyfont.setCursor(2, 58);
-      tinyfont.print("SCORE");
+      tinyfont.print(F("SCORE"));
       tinyfont.setCursor(30, 58);
       tinyfont.print(score);
       break;
 
     case GAME_OVER_STATE:
       arduboy.pollButtons();
-
       if (arduboy.everyXFrames(3)) {
-        arduboy.drawBitmap(bg1X, 0, stars, 128, 64);
-        arduboy.drawBitmap(bg2X, 0, stars, 128, 64);
+        arduboy.drawBitmap(background1X, 0, stars, 128, 64);
+        arduboy.drawBitmap(background2X, 0, stars, 128, 64);
       };
 
       arduboy.setCursor(39, 10);
-      arduboy.print("GAME OVER");
+      arduboy.print(F("GAME OVER"));
+
       arduboy.drawBitmap(20, 50, left, 8, 8);
       arduboy.setCursor(32, 50);
-      arduboy.print("Retry");
+      arduboy.print(F("Retry"));
+
       arduboy.drawBitmap(71, 50, right, 8, 8);
       arduboy.setCursor(82, 50);
-      arduboy.print("Menu");
+      arduboy.print(F("Menu"));
+
       if (arduboy.justPressed(LEFT_BUTTON)) {
         lives = 3;
         invincible = false;
         invincibleTimer = 0;
-        for (bulletNum = 0, enemyNum = 0, explosionNum = 0; bulletNum < 10, enemyNum < 10, explosionNum < 10; bulletNum++, enemyNum++, explosionNum++) {
-          bullet[bulletNum].x = 0;
-          bullet[bulletNum].y = 0;
-          bullet[bulletNum].fired = false;
-          enemy[enemyNum].x = 0;
-          enemy[enemyNum].y = 0;
-          enemy[enemyNum].onscreen = false;
-          explosion[explosionNum].x = 0;
-          explosion[explosionNum].y = 0;
-          explosion[explosionNum].frame = 0;
-          explosion[explosionNum].exploding = false;
+        for (int itemNum = 0; itemNum < 10; itemNum++) {
+          bullet[itemNum].x = 0;
+          bullet[itemNum].y = 0;
+          bullet[itemNum].fired = false;
+          enemy[itemNum].x = 0;
+          enemy[itemNum].y = 0;
+          enemy[itemNum].onscreen = false;
+          explosion[itemNum].x = 0;
+          explosion[itemNum].y = 0;
+          explosion[itemNum].frame = 0;
+          explosion[itemNum].exploding = false;
         };
         score = 0;
         yv = 0;
