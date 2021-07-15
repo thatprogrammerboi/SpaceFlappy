@@ -29,11 +29,12 @@ int lives = 3;
 bool invincible = false;
 int invincibleTimer = 0;
 int score = 0;
+int nextOneUp = random(400, 600);
 
 struct Bullets {
   int x = 0;
   int y = 0;
-  bool fired = false;
+  bool onscreen = false;
 };
 
 struct Enemies {
@@ -46,8 +47,14 @@ struct Explosion {
   int x = 0;
   int y = 0;
   int frame = 0;
-  bool exploding = false;
+  bool onscreen = false;
 };
+
+struct ExtraLife {
+  int x = 0;
+  int y = 0;
+  bool onscreen = false;
+} extralife;
 
 Bullets bullet[10];
 Enemies enemy[10];
@@ -77,18 +84,46 @@ void resetVars() {
   for (int itemNum = 0; itemNum < 10; itemNum++) {
     bullet[itemNum].x = 0;
     bullet[itemNum].y = 0;
-    bullet[itemNum].fired = false;
+    bullet[itemNum].onscreen = false;
     enemy[itemNum].x = 0;
     enemy[itemNum].y = 0;
     enemy[itemNum].onscreen = false;
     explosion[itemNum].x = 0;
     explosion[itemNum].y = 0;
     explosion[itemNum].frame = 0;
-    explosion[itemNum].exploding = false;
+    explosion[itemNum].onscreen = false;
   };
   score = 0;
   yv = 0;
   shipY = 32;
+  extralife.x = 0;
+  extralife.y = 0;
+  extralife.onscreen = 0;
+  nextOneUp = 500;
+};
+
+void handle1Ups() {
+  if (score > nextOneUp) {
+    nextOneUp += random(250, 500);
+    if (!extralife.onscreen) {
+      extralife.onscreen = true;
+      extralife.x = 127;
+      extralife.y = random(1, 55);
+    };
+  };
+
+  if (extralife.onscreen && extralife.x > -8) {
+    extralife.x -= 2;
+    arduboy.drawBitmap(extralife.x, extralife.y, oneUp, 8, 8);
+  } else {
+    extralife.onscreen == false;
+  };
+
+  if (arduboy.collide(Rect(shipX, shipY, 14, 6), Rect(extralife.x, extralife.y, 8, 8)) && extralife.onscreen && lives < 3) {
+    lives++;
+    extralife.onscreen = false;
+    sound.tones(lifeGet);
+  };
 };
 
 void setup() {
@@ -194,10 +229,10 @@ void loop() {
       //Weapon control and movement
       if (arduboy.justPressed(B_BUTTON)) {
         for (int bulletNum = 0; bulletNum < 10; bulletNum++) {
-          if (bullet[bulletNum].fired == false) {
+          if (bullet[bulletNum].onscreen == false) {
             bullet[bulletNum].x = shipX + 5;
             bullet[bulletNum].y = shipY + 3;
-            bullet[bulletNum].fired = true;
+            bullet[bulletNum].onscreen = true;
             sound.tone(450, 10);
             break;
           };
@@ -206,20 +241,20 @@ void loop() {
 
       //Check if bullet is offscreen
       for (int bulletNum = 0; bulletNum < 10; bulletNum++) {
-        if (bullet[bulletNum].x < 127 && bullet[bulletNum].fired) {
+        if (bullet[bulletNum].x < 127 && bullet[bulletNum].onscreen) {
           bullet[bulletNum].x = bullet[bulletNum].x + 3;
         } else {
-          bullet[bulletNum].fired = false;
+          bullet[bulletNum].onscreen = false;
         };
       };
 
       //Check for collisions between enemies and bullets
       for (int bulletNum = 0; bulletNum < 10; bulletNum++) {
         for (int enemyNum = 0; enemyNum < 10; enemyNum++) {
-          if (arduboy.collide(Rect(bullet[bulletNum].x, bullet[bulletNum].y, 3, 1), Rect(enemy[enemyNum].x - 2, enemy[enemyNum].y - 2, 10, 10)) && bullet[bulletNum].fired) {
+          if (arduboy.collide(Rect(bullet[bulletNum].x, bullet[bulletNum].y, 3, 1), Rect(enemy[enemyNum].x - 2, enemy[enemyNum].y - 2, 10, 10)) && bullet[bulletNum].onscreen) {
             for (int explosionNum = 0; explosionNum < 10; explosionNum++) {
-              if (explosion[explosionNum].exploding == false) {
-                explosion[explosionNum].exploding = true;
+              if (explosion[explosionNum].onscreen == false) {
+                explosion[explosionNum].onscreen = true;
                 explosion[explosionNum].x = enemy[enemyNum].x - 2;
                 explosion[explosionNum].y = enemy[enemyNum].y - 2;
                 explosion[explosionNum].frame = 0;
@@ -229,7 +264,7 @@ void loop() {
             enemy[enemyNum].onscreen = false;
             enemy[enemyNum].x = 0;
             enemy[enemyNum].y = 0;
-            bullet[bulletNum].fired = false;
+            bullet[bulletNum].onscreen = false;
             sound.tones(enemyDeath);
             score = score + 20; //Add to score
           };
@@ -310,7 +345,7 @@ void loop() {
 
       //Draw the bullets
       for (int bulletNum = 0; bulletNum < 10; bulletNum++) {
-        if (bullet[bulletNum].fired == true) {
+        if (bullet[bulletNum].onscreen == true) {
           arduboy.drawFastHLine(bullet[bulletNum].x, bullet[bulletNum].y, 3);
         };
       };
@@ -318,7 +353,7 @@ void loop() {
 
       //Draw the explosions
       for (int explosionNum = 0; explosionNum < 10; explosionNum++) {
-        if (explosion[explosionNum].exploding == true) {
+        if (explosion[explosionNum].onscreen == true) {
           switch (explosion[explosionNum].frame) {
             case 0:
               arduboy.drawBitmap(explosion[explosionNum].x, explosion[explosionNum].y, explosion1, 12, 12);
@@ -379,14 +414,14 @@ void loop() {
           };
         };
       };
-      
+
       //Increment each explosion's frame
       if (arduboy.everyXFrames(2)) {
         for (int explosionNum = 0; explosionNum < 10; explosionNum++) {
           if (explosion[explosionNum].frame < 12) {
             explosion[explosionNum].frame++;
           } else {
-            explosion[explosionNum].exploding = false;
+            explosion[explosionNum].onscreen = false;
           };
         };
       };
@@ -413,6 +448,9 @@ void loop() {
       tinyfont.print(F("SCORE"));
       tinyfont.setCursor(30, 58);
       tinyfont.print(score);
+
+      handle1Ups();
+
       break;
 
     case GAME_OVER_STATE:
