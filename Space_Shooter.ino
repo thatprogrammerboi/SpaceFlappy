@@ -99,17 +99,15 @@ void resetVars() {
   extralife.x = 0;
   extralife.y = 0;
   extralife.onscreen = 0;
-  nextOneUp = 500;
+  nextOneUp = random(400, 600);
 };
 
 void handle1Ups() {
   if (score > nextOneUp) {
     nextOneUp += random(250, 500);
-    if (!extralife.onscreen) {
-      extralife.onscreen = true;
-      extralife.x = 127;
-      extralife.y = random(1, 55);
-    };
+    extralife.onscreen = true;
+    extralife.x = 127;
+    extralife.y = random(1, 55);
   };
 
   if (extralife.onscreen && extralife.x > -8) {
